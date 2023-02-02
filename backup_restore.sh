@@ -77,10 +77,14 @@ function restore_postgres() {
 
 # Function to restore backup from remote server
 function restore_remote() {
+
     # Ask for remote server information
     read -p "Enter remote server address: " server
     read -p "Enter username: " username
     read -p "Enter the path to the backup on the remote server: " backup_path
+
+    backupdir="remote_backups/${server}"
+    mkdir -p $backupdir
 
     # Check if the server can be accessed using key or password or preconfigured ssh configs
     echo "Checking access to remote server..."
@@ -89,15 +93,15 @@ function restore_remote() {
         # If access failed, ask for password
         read -sp "Password: " password
         echo
-        scp -r $username:$backup_path .
+        scp -r $username:$backup_path .$backupdir/$backup_path
     else
-        scp -r $username@$server:$backup_path .
+        scp -r $username@$server:$backup_path .$backupdir/$backup_path
     fi
 
     # Ask for database information
-    read -p "Enter database name: " database
-    read -p "Enter database username: " db_username
-    read -sp "Enter database password: " db_password
+    read -p "Enter local database name: " database
+    read -p "Enter local database username: " db_username
+    read -sp "Enter local database password: " db_password
     echo
 
     # Check if database is MySQL or PostgreSQL
