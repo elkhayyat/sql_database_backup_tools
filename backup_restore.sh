@@ -118,6 +118,9 @@ function restore_remote() {
 
 # Function to pull updates from Git repository
 function pull_updates() {
+
+    echo "Pulling updates from Git repository..."
+
     # Check if the current directory is a Git repository
     if [ ! -d ".git" ]; then
         echo "Error: Not a Git repository."
