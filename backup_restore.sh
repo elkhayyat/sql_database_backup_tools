@@ -20,7 +20,7 @@ create_config_file() {
         echo "db_name=$db_name"
         echo "db_username=$db_username"
         echo "db_password=$db_password"
-        echo"db_filename=db_filename"
+        echo "db_filename=db_filename"
         echo
         echo
         echo "# Remote server configuration"
