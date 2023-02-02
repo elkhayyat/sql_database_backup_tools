@@ -1,63 +1,129 @@
 #!/bin/bash
 
-# Backup and Restore script for MySQL and PostgreSQL databases
+# Functions for backup and restore of MySQL and PostgreSQL databases
+function backup_mysql() {
+    # Get database name
+    read -p "Enter the name of the MySQL database to backup: " db_name
 
-# Define variables
-DATE=`date +%Y-%m-%d`
-MYSQL_BACKUP_DIR="/backups/mysql"
-POSTGRES_BACKUP_DIR="/backups/postgres"
+    # Get MySQL credentials
+    read -p "Enter the MySQL username: " mysql_user
+    read -s -p "Enter the MySQL password: " mysql_password
+    echo
 
-# Check if the backup directories exist, if not create them
-if [ ! -d $MYSQL_BACKUP_DIR ]; then
-  mkdir -p $MYSQL_BACKUP_DIR
-fi
+    # Create backup directory if it doesn't exist
+    if [ ! -d "mysql_backups" ]; then
+        mkdir mysql_backups
+    fi
 
-if [ ! -d $POSTGRES_BACKUP_DIR ]; then
-  mkdir -p $POSTGRES_BACKUP_DIR
-fi
-
-# Function to backup MySQL databases
-mysql_backup() {
-  echo "Backing up MySQL databases..."
-  read -p "Enter the name of the database to be backed up: " db_name
-  mysqldump -u root -p $db_name > "$MYSQL_BACKUP_DIR/$db_name-$DATE.sql"
-  echo "Database $db_name has been backed up successfully to $MYSQL_BACKUP_DIR/$db_name-$DATE.sql"
+    # Backup the database
+    mysqldump -u "$mysql_user" -p"$mysql_password" "$db_name" > "mysql_backups/$db_name-$(date +%F).sql"
+    echo "MySQL database $db_name has been backed up successfully."
 }
 
-# Function to backup PostgreSQL databases
-postgres_backup() {
-  echo "Backing up PostgreSQL databases..."
-  read -p "Enter the name of the database to be backed up: " db_name
-  pg_dump -U postgres $db_name > "$POSTGRES_BACKUP_DIR/$db_name-$DATE.sql"
-  echo "Database $db_name has been backed up successfully to $POSTGRES_BACKUP_DIR/$db_name-$DATE.sql"
+function restore_mysql() {
+    # Get database name
+    read -p "Enter the name of the MySQL database to restore: " db_name
+
+    # Get backup file name
+    read -p "Enter the name of the backup file: " file_name
+
+    # Get MySQL credentials
+    read -p "Enter the MySQL username: " mysql_user
+    read -s -p "Enter the MySQL password: " mysql_password
+    echo
+
+    # Restore the database
+    mysql -u "$mysql_user" -p"$mysql_password" "$db_name" < "mysql_backups/$file_name"
+    echo "MySQL database $db_name has been restored successfully."
 }
 
-# Function to restore MySQL databases
-mysql_restore() {
-  echo "Restoring MySQL databases..."
-  read -p "Enter the name of the database to be restored: " db_name
-  mysql -u root -p $db_name < "$MYSQL_BACKUP_DIR/$db_name-$DATE.sql"
-  echo "Database $db_name has been restored successfully from $MYSQL_BACKUP_DIR/$db_name-$DATE.sql"
+function backup_postgres() {
+    # Get database name
+    read -p "Enter the name of the PostgreSQL database to backup: " db_name
+
+    # Get PostgreSQL credentials
+    read -p "Enter the PostgreSQL username: " pg_user
+    read -s -p "Enter the PostgreSQL password: " pg_password
+    echo
+
+    # Create backup directory if it doesn't exist
+    if [ ! -d "postgres_backups" ]; then
+        mkdir postgres_backups
+    fi
+
+    # Backup the database
+    export PGPASSWORD="$pg_password"
+    pg_dump -U "$pg_user" "$db_name" > "postgres_backups/$db_name-$(date +%F).sql"
+    unset PGPASSWORD
+    echo "PostgreSQL database $db_name has been backed up successfully."
 }
 
-# Function to restore PostgreSQL databases
-postgres_restore() {
-  echo "Restoring PostgreSQL databases..."
-  read -p "Enter the name of the database to be restored: " db_name
-  psql -U postgres $db_name < "$POSTGRES_BACKUP_DIR/$db_name-$DATE.sql"
-  echo "Database $db_name has been restored successfully from $POSTGRES_BACKUP_DIR/$db_name-$DATE.sql"
+function restore_postgres() {
+    # Get database name
+    read -p "Enter the name of the PostgreSQL database to restore: " db_name
+
+    # Get backup file name
+    read -p "Enter the name of the backup file: " file_name
+
+    # Get PostgreSQL credentials
+    read -p "Enter the PostgreSQL username: " pg_user
+    read -s -p "Enter the PostgreSQL password: " pg_password
+    echo
+
+    # Restore the database
+    export PGPASSWORD="$pg_password"
+    psql -U "$pg_user" "$db_name" < "postgres_backups/$file_name"
 }
 
-# Main function to display menu and handle user input
-main() {
-  echo "============================================================="
-  echo "Backup and Restore script for MySQL and PostgreSQL databases"
-  echo "============================================================="
-  echo "1. Backup MySQL databases"
-  echo "2. Backup PostgreSQL databases"
-  echo "3. Restore MySQL databases"
-  echo "4. Restore PostgreSQL databases"
-  echo "5. Quit"
-  read -p "Enter your choice [1-5]: " choice
+# Function to display menu
+function display_menu() {
+    echo "===================="
+    echo " Database Backup/Restore"
+    echo "===================="
+    echo "1. Backup MySQL database"
+    echo "2. Restore MySQL database"
+    echo "3. Backup PostgreSQL database"
+    echo "4. Restore PostgreSQL database"
+    echo "5. Restore Backup from Remote Server"
+    echo "6. Exit"
+}
 
-  case
+# Function to get user selection
+function get_selection() {
+    read -p "Enter your selection 1-6:" selection
+    echo
+}
+
+# Function to process user selection
+function process_selection() {
+    case $selection in
+        1)
+            backup_mysql
+            ;;
+        2)
+            restore_mysql
+            ;;
+        3)
+            backup_postgres
+            ;;
+        4)
+            restore_postgres
+            ;;
+        5)
+            restore_remote
+            ;;
+        6)
+            exit 0
+            ;;
+        *)
+            echo "Invalid selection, please try again."
+            ;;
+    esac
+}
+
+# Continuously display menu and process user selection until exit
+while true; do
+    display_menu
+    get_selection
+    process_selection
+done
