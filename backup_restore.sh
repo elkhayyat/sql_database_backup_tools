@@ -3,10 +3,11 @@
 create_config_file() {
     echo "Creating config file..."
     # Prompt user for values
+    read -p "Enter config file name [xxx.cfg]: " config_file
     read -p "Enter database type [mysql or postgresql]: " db_type
+    read -p "Enter database name: " db_name
     read -p "Enter database username: " db_username
     read -p "Enter database password: " db_password
-    read -p "Enter database name: " db_name
     read -p "Enter database backup file name to be restored: " db_filename
 
     read -p "Enter remote host: " remote_host
@@ -20,7 +21,7 @@ create_config_file() {
         echo "db_name=$db_name"
         echo "db_username=$db_username"
         echo "db_password=$db_password"
-        echo "db_filename=db_filename"
+        echo "db_filename=$db_filename"
         echo
         echo
         echo "# Remote server configuration"
