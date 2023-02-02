@@ -16,17 +16,20 @@ create_config_file() {
     # Write values to config file
     {
         echo "# Database configuration"
-        "db_type=$db_type"
-        "db_name=$db_name"
-        "db_username=$db_username"
-        "db_password=$db_password"
-        "db_filename=db_filename"
-
-        "# Remote server configuration"
-        "remote_host=$remote_host"
-        "remote_username=$remote_username"
-        "remote_path=$remote_path"
+        echo "db_type=$db_type"
+        echo "db_name=$db_name"
+        echo "db_username=$db_username"
+        echo "db_password=$db_password"
+        echo"db_filename=db_filename"
+        echo
+        echo
+        echo "# Remote server configuration"
+        echo "remote_host=$remote_host"
+        echo "remote_username=$remote_username"
+        echo "remote_path=$remote_path"
     } >"$config_file"
+    initialize_db_config
+    initialize_remote_config
 }
 
 # Function to list available config files
