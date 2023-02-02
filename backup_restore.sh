@@ -129,7 +129,7 @@ function restore_remote() {
     initialize_remote_config
     # Create directory named after the hostname inside remote_backups directory
     backup_dir="remote_backups/${remote_host}"
-    mkdir -p backup_dir
+    mkdir -p "$backup_dir"
     backup_file="${backup_dir}/${remote_host}-$(date +%F).sql"
 
     # Download backup from remote server using scp
