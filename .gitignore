@@ -2,3 +2,5 @@ mysql_backups/*
 postgres_backups/*
 remote_backups/*
 *.cfg
+*.dbcfg
+*.rmcfg

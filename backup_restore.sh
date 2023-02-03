@@ -1,68 +1,38 @@
 #!/bin/bash
-# Function to create config file
-create_config_file() {
-    echo "Creating config file..."
-    # Prompt user for values
-    read -p "Enter config file name [xxx.cfg]: " config_file
-    read -p "Enter database type [mysql or postgresql]: " db_type
-    read -p "Enter database name: " db_name
-    read -p "Enter database username: " db_username
-    read -p "Enter database password: " db_password
-    read -p "Enter database backup file name to be restored: " db_filename
-
-    read -p "Enter remote host: " remote_host
-    read -p "Enter remote username: " remote_username
-    read -p "Enter remote full backup file path: " remote_path
-
-    # Write values to config file
-    {
-        echo "# Database configuration"
-        echo "db_type=$db_type"
-        echo "db_name=$db_name"
-        echo "db_username=$db_username"
-        echo "db_password=$db_password"
-        echo "db_filename=$db_filename"
-        echo
-        echo
-        echo "# Remote server configuration"
-        echo "remote_host=$remote_host"
-        echo "remote_username=$remote_username"
-        echo "remote_path=$remote_path"
-    } >"$config_file"
-    initialize_db_config
-    initialize_remote_config
-}
-
 # Function to list available config files
-list_config_files() {
+list_db_config_files() {
     echo "=============================="
-    echo "Available config files:"
-    ls *.cfg
-    read -p "Enter config file name [xxx.cfg]: " config_file
-    if [ -f "$config_file" ]; then
+    echo "Available database config files:"
+    cd config
+    ls *.dbcfg
+    cd ../
+    read -p "Enter config file name [without extension]: " config_file_name
+    db_config_file="config/$config_file_name.dbcfg"
+    if [ -f "$db_config_file" ]; then
         echo "Loading config file..."
     else
         echo "Config file not found."
-        create_config_file "$config_file"
     fi
 }
-
-get_config_file() {
-    # Check if config file is passed as an argument
-    read -p "Enter config file name: " config_file
-    if [ ! -f "$config_file" ]; then
+# Function to list available config files
+list_remote_server_config_files() {
+    echo "=============================="
+    echo "Available remote server config files:"
+    cd config
+    ls config/*.rmcfg
+    cd ../
+    read -p "Enter config file name [without extension]: " config_file_name
+    remote_config_file="config/$config_file_name.rmcfg"
+    if [ -f "$remote_config_file" ]; then
+        echo "Loading config file..."
+    else
         echo "Config file not found."
-        read -p "Do you want to create a new config file? (y/n) " answer
-        if [ "$answer" == "y" ]; then
-            create_config_file
-        else
-            list_config_files
-        fi
     fi
 }
 
 get_config_value() {
-    config_key=$1
+    config_file=$1
+    config_key=$2
     config_value=$(grep "$config_key" "$config_file" | cut -d "=" -f2)
     if [ -z "$config_value" ]; then
         read -p "Enter $config_key: " config_value
@@ -71,22 +41,22 @@ get_config_value() {
 }
 
 function initialize_db_config() {
-    db_type=$(get_config_value "db_type")
-    db_name=$(get_config_value "db_name")
-    db_username=$(get_config_value "db_username")
-    db_password=$(get_config_value "db_password")
-    db_filename=$(get_config_value "db_filename")
+    list_db_config_files
+    db_type=$(get_config_value "$db_config_file" "db_type")
+    db_name=$(get_config_value "$db_config_file" "db_name")
+    db_username=$(get_config_value "$db_config_file" "db_username")
+    db_password=$(get_config_value "$db_config_file" "db_password")
 }
 
 function initialize_remote_config() {
-    remote_host=$(get_config_value "remote_host")
-    remote_username=$(get_config_value "remote_username")
-    remote_path=$(get_config_value "remote_path")
+    list_remote_server_config_files
+    remote_host=$(get_config_value "$remote_config_file" "remote_host")
+    remote_username=$(get_config_value "$remote_config_file" "remote_username")
+    remote_dir=$(get_config_value "$remote_config_file" "remote_dir")
 }
 
 # Functions for backup and restore of MySQL and PostgreSQL databases
 function backup_mysql() {
-    initialize_db_config
     # Create backup directory if it doesn't exist
     if [ ! -d "mysql_backups" ]; then
         mkdir mysql_backups
@@ -98,14 +68,20 @@ function backup_mysql() {
 }
 
 function restore_mysql() {
-    initialize_db_config
     # Restore the database
+    cd mysql_backups
+    ls *.sql
+    cd ../
+    read -p "Enter backup file name: " db_filename
     mysql -u "$db_username" -p"$db_password" "$db_name" <"mysql_backups/$db_filename"
-    echo "MySQL database $db_name has been restored successfully."
+    if [ $? -eq 0 ]; then
+        echo "MySQL database $db_name has been restored successfully."
+    else
+        echo "Error: MySQL database restore failed."
+    fi
 }
 
 function backup_postgres() {
-    initialize_db_config
     # Create backup directory if it doesn't exist
     if [ ! -d "postgres_backups" ]; then
         mkdir postgres_backups
@@ -114,13 +90,20 @@ function backup_postgres() {
     # Backup the database
     export PGPASSWORD="$db_password"
     pg_dump -U "$db_username" "$db_name" >"postgres_backups/$db_name-$(date +%F).sql"
+    if [ $? -eq 0 ]; then
+        echo "PostgreSQL database $db_name has been backed up successfully."
+    else
+        echo "Error: PostgreSQL database backup failed."
+    fi
     unset PGPASSWORD
-    echo "PostgreSQL database $db_name has been backed up successfully."
 }
 
 function restore_postgres() {
-    initialize_db_config
     # Restore the database
+    cd postgres_backups
+    ls *.sql
+    cd ../
+    db_filename=$(get_config_value "$db_config_file" "db_filename")
     export PGPASSWORD="$db_password"
     psql -U "$db_username" "$db_name" <"postgres_backups/$db_filename"
 }
@@ -180,19 +163,84 @@ function pull_updates() {
     git pull origin main
 }
 
+function backup_local() {
+    initialize_db_config
+    if [ "$db_type" == "mysql" ]; then
+        backup_mysql
+    elif [ "$db_type" == "postgresql" ]; then
+        backup_postgres
+    else
+        echo "Invalid database type, please try again."
+    fi
+}
+
+function restore_local() {
+    initialize_db_config
+    if [ "$db_type" == "mysql" ]; then
+        restore_mysql
+    elif [ "$db_type" == "postgresql" ]; then
+        restore_postgres
+    else
+        echo "Invalid database type, please try again."
+    fi
+}
+
+function backup_from_remote_db() {
+    initialize_remote_config
+    initialize_db_config
+
+    file_name="${db_name}_${remote_host}-$(date +%F).sql"
+    if [ "$db_type" == "mysql" ]; then
+        # Create directory named after the hostname inside remote_backups directory
+        backup_dir="mysql_backups/"
+        mkdir -p "$backup_dir"
+        local_backup_file_path="${backup_dir}/${file_name}"
+
+        # Backup the database
+        echo "Backing up database on remote server..."
+        ssh "${remote_username}@${remote_host}" "mkdir -p ${remote_dir}; mysqldump -u ${db_username} -p'${db_password}' ${db_name} > ${remote_dir}/${file_name}"
+
+
+    elif
+        [ "$db_type" == "postgresql" ]
+    then
+        # Create directory named after the hostname inside remote_backups directory
+        backup_dir="postgres_backups/"
+        mkdir -p "$backup_dir"
+        local_backup_file_path="${backup_dir}/${file_name}"
+
+        # Backup the database
+        echo "Backing up database on remote server..."
+        ssh "${remote_username}@${remote_host}" mkdir -p $remote_dir
+        ssh "${remote_username}@${remote_host}" "export PGPASSWORD=${db_password}; pg_dump -U ${db_username} ${db_name}" >"${remote_dir}/${file_name}"
+
+    else
+        echo "Invalid database type, please try again."
+        exit 1
+    fi
+
+    # Download backup from remote server using scp
+    echo "Downloading backup from remote server..."
+    scp "${remote_username}@${remote_host}:${remote_dir}/${file_name}" "${local_backup_file_path}"
+
+}
 # Function to display menu
 function display_menu() {
-    echo "===================="
-    echo " Database Backup/Restore"
-    echo "===================="
-    echo "1. Create Config File"
-    echo "2. Load Config File"
-    echo "3. Backup MySQL database"
-    echo "4. Restore MySQL database"
-    echo "5. Backup PostgreSQL database"
-    echo "6. Restore PostgreSQL database"
-    echo "7. Restore Backup from Remote Server"
-    echo "8. Exit"
+    echo "========================================"
+    echo " SQL Database Backup Tools"
+    echo " Version: 2.0"
+    echo "========================================"
+    echo " Created by: AHMED ELKHAYYAT"
+    echo " Website: https://elkhayyat.me"
+    echo " Github: https://github.com/elkhayyat/sql_database_backup_tools"
+    echo "========================================"
+    echo "1. Backup from a local database to a local file"
+    echo "2. Restore from a local file to a local database"
+    echo "3. Backup from a remote database to a local file"
+#    echo "4. Restore from a remote file to a local database"
+#    echo "5. Backup from a local database to a remote file"
+#    echo "6. Restore from a local file to a remote database"
+    echo "9. Exit"
 }
 
 # Function to get user selection
@@ -205,27 +253,24 @@ function get_selection() {
 function process_selection() {
     case $selection in
     1)
-        create_config_file
+        backup_local
         ;;
     2)
-        list_config_files
+        restore_local
         ;;
     3)
-        backup_mysql
-        ;;
-    4)
-        restore_mysql
-        ;;
-    5)
-        backup_postgres
+        backup_from_remote_db
         ;;
     6)
-        restore_postgres
+        exit 0
         ;;
     7)
-        restore_remote
+        exit 0
         ;;
     8)
+        exit 0
+        ;;
+    9)
         exit 0
         ;;
     *)
@@ -235,8 +280,8 @@ function process_selection() {
 }
 
 function main() {
-    pull_updates
-    list_config_files
+#    pull_updates
+#    list_config_files
     # Continuously display menu and process user selection until exit
     while true; do
         display_menu
