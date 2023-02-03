@@ -43,6 +43,14 @@ function create_remote_config_file(){
 }
 
 function display_menu(){
+    echo "========================================"
+    echo " SQL Database Backup Tools - Config Creator"
+    echo " Version: 2.0"
+    echo "========================================"
+    echo " Created by: AHMED ELKHAYYAT"
+    echo " Website: https://elkhayyat.me"
+    echo " Github: https://github.com/elkhayyat/sql_database_backup_tools"
+    echo "========================================"
     echo "1. Create a new database config file"
     echo "2. Create a new remote server config file [used for remote server data]"
     echo "3. Exit"
