@@ -42,7 +42,23 @@ you can backup or restore a database with just a few clicks, without having to r
 Note: You may need to modify the script to match your database credentials and backup directory paths.
 
 ## TODO
-[]: # Test PostgreSQL Local Restore.
+1. [ ] Adding support to back-up from a local database to a remote file.
+2. [ ] Adding support to Restore from a remote file to a local database.
+3. [ ] Adding support to Restore from a local file to a remote database.
+
+## TESTS
+1. [X] Test back-up from local MySQL database to a local file.
+2. [X] Test restore from a local file to MySQL local database.
+3. [ ] Test back-up from local PostgreSQL database to a local file.
+4. [ ] Test restore from a local file to PostgreSQL local database.
+5. [X] Test back-up from remote MySQL database to a local file.
+
+## Change Log
+- 2023-02-03: [Version 2.0]
+  - Added PostgreSQL support.
+  - Added remote server backup support.
+  - Added config_creator.sh script to generate config files.
+- 2020-02-02: [Version 1.0] Initial release.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
