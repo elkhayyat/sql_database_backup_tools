@@ -4,3 +4,4 @@ remote_backups/*
 *.cfg
 *.dbcfg
 *.rmcfg
+.idea/*
